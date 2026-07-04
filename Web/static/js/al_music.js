@@ -1036,7 +1036,7 @@ window.player = new (class {
                             <div id='aj_player_track_name'>
                                 <a id='aj_player_track_title' class='noOverflow' style='max-width: 300px;'>
                                     <b>Unknown</b>
-                                    —
+                                    <div class="tire">—</div>
                                     <span>Untitled</span>
                                 </a>
 
@@ -1599,8 +1599,12 @@ u(document).on(
     x = e.pageX - rx;
     y = e.pageY - ry;
 
-    if (rect.height + rect.top + 100 > window.innerHeight) {
-      y = (rect.height + 120) * -1;
+    if(pageContent) {
+        if(e.clientY + 100 > window.innerHeight) {
+            y -= 100
+        }
+    } else if((rect.height + rect.top) + 100 > window.innerHeight) {
+        y = ((rect.height + 120) * -1)
     }
 
     const ctx_u = u(`

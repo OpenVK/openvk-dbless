@@ -6,8 +6,24 @@ abstract class VkEntity
     protected array $data;
     public function __construct(array $data) { $this->data = $data; }
     public function getId(): int { return (int) ($this->data["id"] ?? 0); }
-    public function getOwnerId(): int { return (int) ($this->data["owner_id"] ?? 0); }
+    public function getOwnerId(): int {
+        return (int) ($this->data["owner_id"] ?? 0);
+    }
+
+    public function hasPreview(): bool {
+        return false;
+    }
+
+    public function isCopiedBy(): bool {
+        return false;
+    }
+
+    public function getTags(): array {
+        return [];
+    }
+
     public function getPrettyId(): string { return $this->getOwnerId() . "_" . $this->getId(); }
+    public function getPrettiestId(): string { return $this->getPrettyId(); }
 
     public function toVkApiStruct($user)
     {
@@ -137,6 +153,21 @@ abstract class VkEntity
     public function getPublicationTime(): \openvk\Web\Util\DateTime
     {
         $ts = $this->getTime() ?? time();
+
+        return new \openvk\Web\Util\DateTime($ts);
+    }
+
+    /**
+     * Возвращает unix timestamp последнего обновления.
+     */
+    public function getUpdated(): int
+    {
+        return (int) ($this->data["updated"] ?? 0);
+    }
+
+    public function getUpdateTime(): \openvk\Web\Util\DateTime
+    {
+        $ts = $this->getUpdated() ?? $this->getTime() ;
 
         return new \openvk\Web\Util\DateTime($ts);
     }

@@ -1,0 +1,79 @@
+{var $instance_name = \OPENVK_ROOT_CONF['openvk']['appearance']['name']}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{_vk_api_error_title} - {$instance_name}</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no" />
+        <style>
+            @keyframes gradient {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+
+            body {
+                background: linear-gradient(-30deg, #2b2b2b, #f479ff);
+                color: #fff;
+                font-family: sans-serif;
+                font-weight: 900;
+                animation: gradient 30s ease-in-out infinite;
+                background-size: 400% 400%;
+            }
+
+            #error {
+                width: 35rem;
+                max-width: 85vw;
+            }
+
+            main {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 97vh;
+                text-align: center;
+            }
+
+            .error-details {
+                background: rgba(0,0,0,0.3);
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                margin: 1rem 0;
+                max-width: 85vw;
+                word-break: break-word;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 0.6rem 1.4rem;
+                margin: 0.3rem;
+                border-radius: 6px;
+                color: #fff;
+                text-decoration: none;
+                font-size: 1rem;
+            }
+
+            .btn-clear {
+                background: #e74c3c;
+            }
+
+            .btn-home {
+                background: #5b88bd;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <img src="/assets/packages/static/openvk/img/oof.apng" alt="VK API Error" id="error" />
+            <h1>{_vk_api_error_title}</h1>
+            <div class="error-details">
+                <p>{$vkErrorMsg}</p>
+            </div>
+            <p>
+                <a href="/logout?hash={$csrfToken}" class="btn btn-clear">{_vk_clear_token}</a>
+                <a href="/" class="btn btn-home">{_to_main}</a>
+            </p>
+        </main>
+    </body>
+</html>

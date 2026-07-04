@@ -37,6 +37,10 @@ class Document extends VkEntity
         return $this->getSize();
     }
 
+    public function getFileExtension(): string {
+        return $this->getExtension();
+    }
+
     public function getExtension(): string
     {
         return $this->data["ext"] ?? "";

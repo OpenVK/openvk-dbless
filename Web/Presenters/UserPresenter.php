@@ -513,14 +513,141 @@ final class UserPresenter extends OpenVKPresenter
         }
     }
 
+    private function isVkMode(): bool
+    {
+        return OPENVK_ROOT_CONF["openvk"]["vk"]["enabled"] ?? false;
+    }
+
     public function renderSettings(): void
     {
         $this->assertUserLoggedIn();
 
-        $id = $this->user->id; #TODO: when ACL'll be done, allow admins to edit users via ?GUID=(chandler guid)
-
+        $id = $this->user->id;
         if (!$id) {
             $this->notFound();
+        }
+
+        if ($this->isVkMode()) {
+            $this->template->vkMode = true;
+
+            if ($_SERVER["REQUEST_METHOD"] === "POST") {
+                if ($_GET['act'] === "interface") {
+                    // Сохраняем настройки интерфейса в куки
+                    $style = $this->postParam("style");
+                    if (isset(Themepacks::i()[$style]) || $style === Themepacks::DEFAULT_THEME_ID) {
+                        if ($this->postParam("theme_for_session") != "1") {
+                            setcookie("vk_style", $style, [
+                                "expires"  => time() + 86400 * 365,
+                                "path"     => "/",
+                                "secure"   => ovk_is_ssl(),
+                                "httponly" => true,
+                                "samesite" => "Lax",
+                            ]);
+                        }
+                        $this->setSessionTheme($this->postParam("style"));
+                    }
+
+                    if ($this->postParam("style_avatar") <= 2 && $this->postParam("style_avatar") >= 0) {
+                        setcookie("vk_style_avatar", (string) (int) $this->postParam("style_avatar"), [
+                            "expires"  => time() + 86400 * 365,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                    }
+
+                    if (in_array($this->postParam("rating"), [0, 1])) {
+                        setcookie("vk_show_rating", (string) (int) $this->postParam("rating"), [
+                            "expires"  => time() + 86400 * 365,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                    }
+
+                    if (in_array($this->postParam("microblog"), [0, 1])) {
+                        setcookie("vk_microblog", (string) (int) $this->postParam("microblog"), [
+                            "expires"  => time() + 86400 * 365,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                    }
+
+                    if (in_array($this->postParam("nsfw"), [0, 1, 2])) {
+                        setcookie("vk_nsfw_tolerance", (string) (int) $this->postParam("nsfw"), [
+                            "expires"  => time() + 86400 * 365,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                    }
+
+                    if (in_array($this->postParam("main_page"), [0, 1])) {
+                        setcookie("vk_main_page", (string) (int) $this->postParam("main_page"), [
+                            "expires"  => time() + 86400 * 365,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                    }
+
+                    $_COOKIE["vk_style"]         = $style ?? ($_COOKIE["vk_style"] ?? "auto");
+                    $_COOKIE["vk_style_avatar"]  = (string) ((int) $this->postParam("style_avatar"));
+                    $_COOKIE["vk_show_rating"]   = $this->postParam("rating");
+                    $_COOKIE["vk_microblog"]     = $this->postParam("microblog");
+                    $_COOKIE["vk_nsfw_tolerance"] = $this->postParam("nsfw");
+                    $_COOKIE["vk_main_page"]     = $this->postParam("main_page");
+                } elseif ($_GET['act'] === "lMenu") {
+                    // Сохраняем видимость пунктов меню в куке
+                    $settings = [
+                        "menu_bildoj"    => "photos",
+                        "menu_muziko"    => "audios",
+                        "menu_filmetoj"  => "videos",
+                        "menu_mesagoj"   => "messages",
+                        "menu_notatoj"   => "notes",
+                        "menu_grupoj"    => "groups",
+                        "menu_novajoj"   => "news",
+                        "menu_ligiloj"   => "links",
+                        "menu_standardo" => "poster",
+                        "menu_aplikoj"   => "apps",
+                        "menu_doxc"      => "docs",
+                        "menu_feva"      => "fave",
+                    ];
+
+                    $enabled = [];
+                    foreach ($settings as $checkbox => $setting) {
+                        if ($this->checkbox($checkbox)) {
+                            $enabled[] = $setting;
+                        }
+                    }
+
+                    setcookie("vk_menu", json_encode($enabled), [
+                        "expires"  => time() + 86400 * 365,
+                        "path"     => "/",
+                        "secure"   => ovk_is_ssl(),
+                        "httponly" => true,
+                        "samesite" => "Lax",
+                    ]);
+                    $_COOKIE["vk_menu"] = json_encode($enabled);
+                }
+
+                $this->flash("succ", tr("changes_saved"), tr("changes_saved_comment"));
+                $this->redirect("/settings?act=" . ($_GET['act'] ?? "interface"));
+            }
+
+            $this->template->mode = in_array($this->queryParam("act"), [
+                "interface",
+            ]) ? $this->queryParam("act")
+                : "interface";
+            $this->template->themes = Themepacks::i()->getThemeList();
+
+            return;
         }
 
         if (in_array($this->queryParam("act"), ["finance", "finance.top-up"]) && !OPENVK_ROOT_CONF["openvk"]["preferences"]["commerce"]) {

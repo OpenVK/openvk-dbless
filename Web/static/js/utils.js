@@ -6,7 +6,8 @@ function escapeHtml(text) {
       '"': '&quot;',
       "'": '&#039;'
     };
-    
+
+  text = text ?? "??";
     return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
@@ -20,7 +21,7 @@ function highlightText(searchText, container_selector, selectors = []) {
             newNode = newNode.replace(regexp, (match, ...args) => {
                 return `<span class='highlight'>${escapeHtml(match)}</span>`
             })
-            
+
             const tempDiv = document.createElement('div')
             tempDiv.innerHTML = newNode
 
@@ -79,7 +80,7 @@ function trim(string) {
     var newStr = string.substring(0, 10);
     if(newStr.length !== string.length)
         newStr += "…";
-    
+
     return newStr;
 }
 
@@ -136,12 +137,12 @@ function array_splice(array, key)
     return resultArray;
 }
 
-function strip_tags(text) 
+function strip_tags(text)
 {
     return text.replace(/(<([^>]+)>)/gi, "")
 }
 
-function find_author(id, profiles, groups) 
+function find_author(id, profiles, groups)
 {
     if(id > 0) {
         const profile = profiles.find(prof => prof.id == id)
@@ -182,7 +183,7 @@ function getRemainingTime(fullTime, time) {
     return "-" + fmtTime(timer)
 }
 
-function serializeForm(form, submitter = null) 
+function serializeForm(form, submitter = null)
 {
     const u_ = u(form)
     const inputs = u_.find('input, textarea, button, select')
@@ -217,7 +218,7 @@ function serializeForm(form, submitter = null)
                 if(inp.checked) {
                     fd.append(inp.name, inp.value)
                 }
-                
+
                 break
             case 'file':
                 if(!inp.multiple) {
@@ -256,17 +257,17 @@ async function copyToClipboard(text) {
     }
 }
 
-function remove_file_format(text) 
+function remove_file_format(text)
 {
     return text.replace(/\.[^.]*$/, '')
 }
 
-function sleep(time) 
+function sleep(time)
 {
     return new Promise((resolve) => setTimeout(resolve, time));
 }
 
-function collect_attachments_node(target) 
+function collect_attachments_node(target)
 {
     const horizontal_array = []
     const horizontal_input = target.find(`input[name='horizontal_attachments']`)

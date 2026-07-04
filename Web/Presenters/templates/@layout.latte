@@ -368,6 +368,14 @@
                             </a>
                             <a href="/logout?hash={urlencode($csrfToken)}" class="link">{_menu_logout}</a>
                         {/if}
+                    {elseif \OPENVK_ROOT_CONF['openvk']['vk']['enabled'] && isset($_COOKIE['vk_token'])}
+                        <div class="link">
+                            <a href="/logout?hash={urlencode($csrfToken)}">{_header_log_out}</a>
+                        </div>
+                    {elseif \OPENVK_ROOT_CONF['openvk']['vk']['enabled']}
+                        <div class="link">
+                            <a href="/login" style="display: inline-block;">{_log_in}</a>
+                        </div>
                     {else}
                         <form id="fastLogin" action="/login" method="POST" enctype="multipart/form-data">
                             <label for="login"><span>{_email}:</span></label>

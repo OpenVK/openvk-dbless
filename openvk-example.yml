@@ -3,7 +3,7 @@ openvk:
     appearance:
         name: "OpenVK"
         motd: "Yet another OpenVK instance"
-    
+
     mirrors: # list all existing and previous domains without www. Won't work with different port
         - "ovk.localhost"
         - "ovk.local"
@@ -145,7 +145,14 @@ openvk:
         news:
             show: false
             groupId: 1
-    
+    vk:
+      enabled: true
+      proxy_feed: true
+      api_url: "https://api.vk.com/method"
+      api_version: "5.131"
+      verify_ssl: true
+      cache_ttl: 300
+
     telemetry:
         plausible:
             enable: false
@@ -160,7 +167,7 @@ openvk:
             enable: false
             container: ""
             site: ""
-    
+
     credentials:
         smsc:
             enable: false

@@ -409,7 +409,7 @@ window.player = new (class {
     this.__updateMediaSession();
 
     // HLS (.m3u8) support via hls.js
-    if (c_track.url && c_track.url.includes(".m3u8")) {
+    if (c_track.url && (c_track.url.includes(".m3u8"))) {
       if (this.hlsPlayer) {
         this.hlsPlayer.destroy();
       }
@@ -417,13 +417,18 @@ window.player = new (class {
       this.hlsPlayer.loadSource(c_track.url);
       this.hlsPlayer.attachMedia(this.audioPlayer);
     } else {
-      // DASH (.mpd) via dashjs
-      if (this.hlsPlayer) {
-        this.hlsPlayer.destroy();
-        this.hlsPlayer = null;
+      if (c_track.url.includes(".mp3")) {
+        this.__realAudioPlayer.src = c_track.url;
+      } else {
+        // DASH (.mpd) via dashjs
+        if (this.hlsPlayer) {
+          this.hlsPlayer.destroy();
+          this.hlsPlayer = null;
+        }
+        this.dashPlayer.initialize(this.audioPlayer, c_track.url, false);
+        this.dashPlayer.setProtectionData(protData);
       }
-      this.dashPlayer.initialize(this.audioPlayer, c_track.url, false);
-      this.dashPlayer.setProtectionData(protData);
+
     }
 
     if (

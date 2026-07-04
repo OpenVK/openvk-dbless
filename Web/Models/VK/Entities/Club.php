@@ -106,7 +106,7 @@ class Club
 
     public function getRealId(): int
     {
-        return $this->getId();
+        return $this->getId() * -1;
     }
 
     /* ===== Имя ===== */

@@ -31,6 +31,7 @@ class Video extends VkEntity
      */
     public function getName(): string
     {
+        $this->data["is_processed"] = true;
         return $this->data["title"] ?? "";
     }
 
@@ -172,8 +173,13 @@ class Video extends VkEntity
         $platform = $this->data["platform"] ?? "";
         $player   = $this->data["player"] ?? "";
 
+        bdump($this->data);
+        if ($player == "") {
+            $player = "https://vk.ru/video_ext.php?oid=" . $this->data["owner_id"] . "&id=" . $this->data["id"];
+        }
+
         // YouTube: use existing driver
-        if ($platform === "youtube") {
+        if ($platform === "youtube" || $platform === "YouTube") {
             $url = $this->data["url"] ?? $player;
             $ytId = "";
             if (preg_match("%(?:youtube\\.com/watch\\?v=|youtu\\.be/)([A-z0-9_-]+)%", $url, $m)) {

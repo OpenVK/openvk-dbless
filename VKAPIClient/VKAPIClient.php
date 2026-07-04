@@ -7,13 +7,18 @@ namespace openvk\VKAPIClient;
 /**
  * HTTP-клиент для реального VK API.
  *
- * Данные: openvk.yml → vk.api_url, vk.access_token, vk.api_version
+ * В VK-proxy режиме (openvk.yml → openvk.vk.enabled = true)
+ * токен берётся из зашифрованной куки vk_token, а не из конфига.
+ *
  * Использование:
  *   $api = VKAPIClient::i();
  *   $users = $api->call("users.get", ["user_ids" => 1]);
  */
 class VKAPIClient
 {
+    private const CIPHER = "aes-256-ctr";
+    private const COOKIE_NAME = "vk_token";
+
     private string $apiUrl;
     private string $accessToken;
     private string $apiVersion;
@@ -25,6 +30,25 @@ class VKAPIClient
     private static array $responseCache = [];
 
     private static ?self $instance = null;
+
+    /** @var string|null Последняя ошибка VK API для показа пользователю */
+    private static ?string $lastErrorMessage = null;
+
+    /**
+     * Возвращает последнюю ошибку VK API.
+     */
+    public static function getLastErrorMessage(): ?string
+    {
+        return self::$lastErrorMessage;
+    }
+
+    /**
+     * Очищает сохранённую ошибку.
+     */
+    public static function clearLastError(): void
+    {
+        self::$lastErrorMessage = null;
+    }
 
     public function __construct(
         ?string $apiUrl = null,
@@ -57,6 +81,103 @@ class VKAPIClient
     }
 
     /**
+     * Получает ключ шифрования на основе имени инстанса.
+     */
+    private static function getEncryptionKey(): string
+    {
+        $secret = OPENVK_ROOT_CONF["openvk"]["appearance"]["name"] ?? "OpenVK";
+
+        return hash("sha256", $secret, true);
+    }
+
+    /**
+     * Зашифровывает VK токен для хранения в куке.
+     */
+    public static function encryptToken(string $token): string
+    {
+        $iv        = openssl_random_pseudo_bytes(16);
+        $encrypted = openssl_encrypt($token, self::CIPHER, self::getEncryptionKey(), OPENSSL_RAW_DATA, $iv);
+
+        return base64_encode($iv . $encrypted);
+    }
+
+    /**
+     * Расшифровывает VK токен из куки.
+     * Возвращает null при ошибке.
+     */
+    public static function decryptToken(string $payload): ?string
+    {
+        $data = base64_decode($payload, true);
+        if ($data === false || strlen($data) < 16) {
+            return null;
+        }
+
+        $iv         = substr($data, 0, 16);
+        $ciphertext = substr($data, 16);
+        $result     = openssl_decrypt($ciphertext, self::CIPHER, self::getEncryptionKey(), OPENSSL_RAW_DATA, $iv);
+
+        return $result === false ? null : $result;
+    }
+
+    /**
+     * Пытается получить VK токен из куки.
+     * Возвращает null, если кука отсутствует или не расшифровывается.
+     */
+    public static function getTokenFromCookie(): ?string
+    {
+        if (!isset($_COOKIE[self::COOKIE_NAME])) {
+            return null;
+        }
+
+        return self::decryptToken($_COOKIE[self::COOKIE_NAME]);
+    }
+
+    /**
+     * Определяет, какой токен использовать:
+     * 1. Токен из куки (приоритет, для VK-proxy режима)
+     * 2. Токен из конфига (fallback)
+     */
+    private function resolveAccessToken(): string
+    {
+        $cookieToken = self::getTokenFromCookie();
+        if ($cookieToken !== null && $cookieToken !== "") {
+            return $cookieToken;
+        }
+
+        return $this->accessToken;
+    }
+
+    /**
+     * Получает кастомный api_url из куки (незашифрованный).
+     * Если кука отсутствует, возвращает null.
+     */
+    public static function getApiUrlFromCookie(): ?string
+    {
+        if (!isset($_COOKIE["vk_api_url"])) {
+            return null;
+        }
+
+        $url = trim($_COOKIE["vk_api_url"]);
+
+        return $url !== "" ? $url : null;
+    }
+
+    /**
+     * Определяет, какой api_url использовать:
+     * 1. Из куки (приоритет)
+     * 2. Из конфига (fallback)
+     */
+    private function resolveApiUrl(): string
+    {
+        $cookieUrl = self::getApiUrlFromCookie();
+        if ($cookieUrl !== null) {
+            return rtrim($cookieUrl, "/");
+        }
+
+        return $this->apiUrl;
+    }
+
+    /**
      * Строит ключ кеша по методу и параметрам.
      */
     private function buildCacheKey(string $method, array $params): string
@@ -83,7 +204,7 @@ class VKAPIClient
         bdump($method);
         bdump([...$params]);
 
-        $params["access_token"] = $this->accessToken;
+        $params["access_token"] = $this->resolveAccessToken();
         $params["v"] = $this->apiVersion;
 
         // Auto-add minimal fields if not specified (avoids extra API calls for avatars)
@@ -99,6 +220,7 @@ class VKAPIClient
             if (isset(self::$responseCache[$cacheKey])) {
                 $elapsed = time() - self::$responseCache[$cacheKey]["time"];
                 if ($elapsed < $this->cacheTtl) {
+                    bdump($cacheKey);
                     return self::$responseCache[$cacheKey]["data"];
                 }
 
@@ -113,6 +235,7 @@ class VKAPIClient
                     $cached = json_decode(file_get_contents($cacheFile), true);
                     if ($cached !== null) {
                         self::$responseCache[$cacheKey] = ["data" => $cached, "time" => time()];
+                        bdump($cacheKey);
                         return $cached;
                     }
                 }
@@ -142,7 +265,7 @@ class VKAPIClient
      */
     private function doRequest(string $method, array $params, string $httpMethod): array
     {
-        $url = $this->apiUrl . "/" . $method;
+        $url = $this->resolveApiUrl() . "/" . $method;
 
         $ch = curl_init();
 
@@ -210,21 +333,22 @@ class VKAPIClient
                 $sslHint = " (SSL error. Add 'verify_ssl: false' to openvk.yml under 'vk:' section, or install a CA bundle)";
             }
 
-            throw new VKAPIException("cURL error: " . $curlError . $sslHint);
+            self::$lastErrorMessage = "cURL error: " . $curlError . $sslHint;
+            throw new VKAPIException(self::$lastErrorMessage);
         }
 
         $decoded = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new VKAPIException(
-                "JSON parse error: " . json_last_error_msg(),
-            );
+            self::$lastErrorMessage = "JSON parse error: " . json_last_error_msg();
+            throw new VKAPIException(self::$lastErrorMessage);
         }
 
         if (isset($decoded["error"])) {
             $err = $decoded["error"];
+            self::$lastErrorMessage = "VK API error [{$err["error_code"]}]: {$err["error_msg"]}";
             throw new VKAPIException(
-                "VK API error [{$err["error_code"]}]: {$err["error_msg"]}",
+                self::$lastErrorMessage,
                 (int) $err["error_code"],
             );
         }

@@ -54,14 +54,6 @@ class Topic extends VkEntity
         return (int) ($this->data["created"] ?? 0);
     }
 
-    /**
-     * Возвращает unix timestamp последнего обновления.
-     */
-    public function getUpdated(): int
-    {
-        return (int) ($this->data["updated"] ?? 0);
-    }
-
     public function getVirtualId(): int
     {
         return (int) ($this->data["id"] ?? 0);

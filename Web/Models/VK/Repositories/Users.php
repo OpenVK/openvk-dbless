@@ -82,7 +82,7 @@ class Users
 
         try {
             $response = VKAPIClient::i()->call("account.getProfileInfo", []);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             return self::$currentUser = null;
         }
 

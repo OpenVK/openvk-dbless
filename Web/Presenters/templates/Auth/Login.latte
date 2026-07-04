@@ -1,42 +1,68 @@
 {extends "../@layout.latte"}
-{block title}{_log_in}{/block}
+{block title}{if $vkMode ?? false}{_vk_token_auth}{else}{_log_in}{/if}{/block}
 
 {block header}
-    {_log_in}
+    {if $vkMode ?? false}{_vk_token_auth}{else}{_log_in}{/if}
 {/block}
 
 {block content}
-    <form method="POST" enctype="multipart/form-data">
-	<h4 class="reg_h4">{_log_in}</h4>
-        <table class="flexible_table auth_table" cellspacing="7" cellpadding="0" width="46%" border="0" align="center">
-            <tbody>
-                <tr style="text-align: right;">
-                    <td>
-                        <span class="nobold">{_email}: </span>
-                    </td>
-                    <td style="width:191px;">
-                        <input type="text" name="login" required />
-                    </td>
-                </tr>
-                <tr style="text-align: right;">
-                    <td>
-                        <span class="nobold">{_password}: </span>
-                    </td>
-                    <td>
-                        <input type="password" name="password" required />
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-		    <center>
-            <!-- div style="margin-bottom: 8px;"> 
-                <input type="checkbox" name="someone_pc" value=""/>
-				<label for="someone_pc" class="nobold">{_not_your_pc}?</label><br>
-            </div -->
+    {if $vkMode ?? false}
+        <form method="POST" enctype="multipart/form-data">
+            <h4 class="reg_h4">{_vk_token_auth}</h4>
+            <table class="flexible_table auth_table" cellspacing="7" cellpadding="0" width="46%" border="0" align="center">
+                <tbody>
+                    <tr style="text-align: right;">
+                        <td>
+                            <span class="nobold">{_vk_api_url_label}: </span>
+                        </td>
+                        <td>
+                            <input type="text" name="vk_api_url" value="https://api.vk.com/method" style="width: 150px;" placeholder="https://api.vk.com/method" />
+                        </td>
+                    </tr>
+                    <tr style="text-align: right;">
+                        <td>
+                            <span class="nobold">{_vk_token_label}: </span>
+                        </td>
+                        <td>
+                            <input type="text" name="vk_token" required style="width: 150px;" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <center>
+                <input type="hidden" name="hash" value="{$csrfToken}" />
+                <input type="submit" value="{_vk_token_enter}" class="button" />
+            </center>
+        </form>
+    {else}
+        <form method="POST" enctype="multipart/form-data">
+            <h4 class="reg_h4">{_log_in}</h4>
+            <table class="flexible_table auth_table" cellspacing="7" cellpadding="0" width="46%" border="0" align="center">
+                <tbody>
+                    <tr style="text-align: right;">
+                        <td>
+                            <span class="nobold">{_email}: </span>
+                        </td>
+                        <td style="width:191px;">
+                            <input type="text" name="login" required />
+                        </td>
+                    </tr>
+                    <tr style="text-align: right;">
+                        <td>
+                            <span class="nobold">{_password}: </span>
+                        </td>
+                        <td>
+                            <input type="password" name="password" required />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <center>
                 <input type="hidden" name="hash" value="{$csrfToken}" />
                 <input type="submit" value="{_log_in}" class="button" />
                 <a href="/reg" class="button" style="display: inline-block;">{_registration}</a><br><br>
                 <a href="/restore">{_forgot_password}</a>
-		    </center>
-    </form>
+            </center>
+        </form>
+    {/if}
 {/block}

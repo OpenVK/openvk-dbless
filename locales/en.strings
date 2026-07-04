@@ -2103,6 +2103,17 @@
 "tour_section_4_title_2" = "Quick Search";
 "tour_section_4_text_4" = "To save time, use the search bar in the site header.";
 
+/* VK Proxy Mode */
+
+"vk_token_auth" = "VK Token Auth";
+"vk_token_label" = "VK Access Token";
+"vk_token_enter" = "Authenticate";
+"vk_token_saved" = "Token saved successfully.";
+"enter_token" = "Please enter a VK access token.";
+"invalid_vk_token" = "The VK token is invalid or has expired.";
+"registration_not_available" = "Registration Not Available";
+"registration_not_available_in_vk_mode" = "Registration is not available in VK proxy mode. Please log in with a VK access token instead.";
+
 
 "tour_section_5_title_1" = "Upload and Share Videos with Your Friends!";
 "tour_section_5_text_1" = "You can upload an unlimited number of videos and clips.";
@@ -2568,3 +2579,11 @@
 "timezone--765" = "(GMT+12:45): Chatham Islands";
 "timezone--780" = "(GMT+13): Nukualofa, Apia";
 "timezone--840" = "(GMT+14): Kiritimati, Line Islands";
+
+/* VK Proxy Mode — api_url and errors */
+
+"vk_api_url_label" = "VK API URL (optional)";
+"vk_api_url_default" = "https://api.vk.com/method";
+"vk_api_error_title" = "VK API Error";
+"vk_clear_token" = "Clear token";
+"vk_api_unknown_error" = "An unknown VK API error occurred.";

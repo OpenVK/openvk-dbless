@@ -404,24 +404,37 @@ class User
 
     public function getStyle(): string
     {
-        return "auto"; // VK не имеет кастомных стилей
+        return $_COOKIE["vk_style"] ?? "auto";
+    }
+
+    public function getTheme(): ?\openvk\Web\Themes\Themepack
+    {
+        return \openvk\Web\Themes\Themepacks::i()[$this->getStyle()] ?? null;
     }
 
     public function getStyleAvatar(): int
     {
-        return 0;
+        return (int) ($_COOKIE["vk_style_avatar"] ?? 0);
     }
+
+    public function getShowRating(): int
+    {
+        return (int) ($_COOKIE["vk_show_rating"] ?? 1);
+    }
+
     public function hasMilkshakeEnabled(): bool
     {
         return false;
     }
+
     public function hasMicroblogEnabled(): bool
     {
-        return true;
+        return (bool) ($_COOKIE["vk_microblog"] ?? 1);
     }
+
     public function getMainPage(): int
     {
-        return 0;
+        return (int) ($_COOKIE["vk_main_page"] ?? 0);
     }
 
     public function getType(): int
@@ -619,7 +632,16 @@ class User
 
     public function getLeftMenuItemStatus(string $id): bool
     {
-        return true;
+        if (!isset($_COOKIE["vk_menu"])) {
+            return true;
+        }
+
+        $menu = json_decode($_COOKIE["vk_menu"], true);
+        if (!is_array($menu)) {
+            return true;
+        }
+
+        return in_array($id, $menu, true);
     }
 
     public function getNotificationsCount(bool $archive = false): int
@@ -742,7 +764,6 @@ class User
     {
         $perPage ??= 50;
         $offset = ($page - 1) * $perPage;
-        bdump($perPage);
         $response = VKAPIClient::i()->call("groups.get", [
             "user_id" => $this->getId(),
             "extended" => 1,
@@ -782,7 +803,7 @@ class User
 
     public function getNsfwTolerance(): int
     {
-        return (int) ($this->data["nsfw_tolerance"] ?? 0);
+        return (int) ($_COOKIE["vk_nsfw_tolerance"] ?? 0);
     }
 
     public function canPost(): bool
@@ -819,6 +840,16 @@ class User
     public function getPrivacySetting(string $id): int
     {
         return 3;
+    }
+
+    public function getBlacklist(int $offset = 0, int $count = 10): array
+    {
+        return [];
+    }
+
+    public function getBlacklistSize(): int
+    {
+        return 0;
     }
 
     public function isBlacklistedBy($user): bool

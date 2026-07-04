@@ -13,6 +13,8 @@ use Nette\InvalidStateException as ISE;
 use openvk\Web\Models\Entities\IP;
 use openvk\Web\Themes\Themepacks;
 use openvk\Web\Models\Repositories\{IPs, Users, APITokens, Tickets, Reports, CurrentUser, Posts};
+use openvk\VKAPIClient\VKAPIClient;
+use openvk\Web\Models\VK\Entities\User as VKUser;
 use WhichBrowser;
 
 abstract class OpenVKPresenter extends SimplePresenter
@@ -70,6 +72,23 @@ abstract class OpenVKPresenter extends SimplePresenter
 
             $this->redirect($referer);
         }
+    }
+
+    /**
+     * Показывает страницу ошибки VK API с возможностью очистить токен.
+     * Вызов прерывает выполнение (exit).
+     */
+    protected function vkError(?string $message = null): void
+    {
+        $message ??= \openvk\VKAPIClient\VKAPIClient::getLastErrorMessage();
+        $message ??= tr("vk_api_unknown_error");
+
+        header("HTTP/1.1 502 Bad Gateway");
+        $this->getTemplatingEngine()->render(__DIR__ . "/templates/@vk_error.latte", [
+            "vkErrorMsg" => $message,
+            "csrfToken"  => $GLOBALS["csrfToken"] ?? "",
+        ]);
+        exit;
     }
 
     protected function logInUserWithToken(): void
@@ -310,6 +329,58 @@ abstract class OpenVKPresenter extends SimplePresenter
             $this->user->identity     = null;
             $this->user->id           = null;
             $this->template->thisUser = null;
+
+            // В VK-режиме пытаемся загрузить пользователя по токену из куки
+            if (OPENVK_ROOT_CONF["openvk"]["vk"]["enabled"] ?? false) {
+                $vkToken = VKAPIClient::getTokenFromCookie();
+                if ($vkToken !== null && $vkToken !== "") {
+                    try {
+                        $vkClient = new VKAPIClient(
+                            null,
+                            $vkToken,
+                            null,
+                            null,
+                            0,
+                        );
+                        $userData  = $vkClient->call("users.get", [
+                            "user_ids" => 1,
+                            "fields"   => "photo_50,photo_100,photo_200,photo_max_orig,sex,status,screen_name,online,verified,followers_count,about,counters,last_seen",
+                        ]);
+                        if (!empty($userData) && isset($userData[0]["id"])) {
+                            $vkUser = new VKUser($userData[0]);
+
+                            $this->user->identity        = $vkUser;
+                            $this->user->id              = $vkUser->getId();
+                            $this->user->raw             = $vkUser->getChandlerUser();
+                            $this->template->thisUser    = $vkUser;
+                            $this->template->userTainted = false;
+                            CurrentUser::get($vkUser, $_SERVER["REMOTE_ADDR"], $_SERVER["HTTP_USER_AGENT"]);
+
+                            $userValidated = 1;
+                            $cacheTime     = 0;
+                        }
+                    } catch (\Throwable $e) {
+                        // Токен недействителен — сбрасываем куку
+                        VKAPIClient::clearLastError();
+                        setcookie("vk_token", "", [
+                            "expires"  => 1,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                        setcookie("vk_api_url", "", [
+                            "expires"  => 1,
+                            "path"     => "/",
+                            "secure"   => ovk_is_ssl(),
+                            "httponly" => true,
+                            "samesite" => "Lax",
+                        ]);
+                        unset($_COOKIE["vk_token"]);
+                        unset($_COOKIE["vk_api_url"]);
+                    }
+                }
+            }
         }
 
         $this->template->baseUrl = ovk_scheme(true) . $_SERVER['HTTP_HOST'];

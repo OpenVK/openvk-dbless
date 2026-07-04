@@ -8,6 +8,7 @@ use openvk\Web\Models\Entities\{IP, User, PasswordReset, EmailVerification};
 use openvk\Web\Models\Repositories\{Bans, IPs, Users, Restores, Verifications};
 use openvk\Web\Models\Exceptions\InvalidUserNameException;
 use openvk\Web\Util\Validator;
+use openvk\VKAPIClient\VKAPIClient;
 use Chandler\Session\Session;
 use Chandler\Security\User as ChandlerUser;
 use Chandler\Security\Authenticator;
@@ -25,6 +26,11 @@ final class AuthPresenter extends OpenVKPresenter
     private $users;
     private $restores;
     private $verifications;
+
+    private function isVkMode(): bool
+    {
+        return OPENVK_ROOT_CONF["openvk"]["vk"]["enabled"] ?? false;
+    }
 
     public function __construct(Users $users, Restores $restores, Verifications $verifications)
     {
@@ -48,6 +54,12 @@ final class AuthPresenter extends OpenVKPresenter
 
     public function renderRegister(): void
     {
+        if ($this->isVkMode()) {
+            $this->template->vkMode = true;
+
+            return;
+        }
+
         if (!is_null($this->user->identity)) {
             $this->redirect($this->user->identity->getURL());
         }
@@ -177,6 +189,70 @@ final class AuthPresenter extends OpenVKPresenter
 
     public function renderLogin(): void
     {
+        if ($this->isVkMode()) {
+            // Если токен уже есть в куке — редиректим на главную
+            if (VKAPIClient::getTokenFromCookie() !== null && $_SERVER["REQUEST_METHOD"] !== "POST") {
+                $this->redirect("/");
+            }
+
+            $this->template->vkMode = true;
+
+            if ($_SERVER["REQUEST_METHOD"] === "POST") {
+                $this->assertNoCSRF();
+
+                $token  = $this->postParam("vk_token");
+                $apiUrl = $this->postParam("vk_api_url");
+                if (empty($token)) {
+                    $this->flashFail("err", tr("error"), tr("enter_token"));
+                }
+
+                if (!empty($apiUrl)) {
+                    $apiUrl = rtrim($apiUrl, "/");
+                } else {
+                    $vkConf = OPENVK_ROOT_CONF["openvk"]["vk"] ?? [];
+                    $apiUrl = $vkConf["api_url"] ?? "https://api.vk.com/method";
+                }
+
+                // Проверяем токен + URL: делаем тестовый запрос к users.get
+                try {
+                    $testClient = new VKAPIClient(
+                        $apiUrl,
+                        $token,
+                        null,
+                        null,
+                        0, // без кеша
+                    );
+                    $testClient->call("users.get", ["user_ids" => 1]);
+                } catch (\Throwable $e) {
+                    $this->flashFail("err", tr("error"), tr("invalid_vk_token"));
+                }
+
+                // Токен валиден — сохраняем
+                $encrypted = VKAPIClient::encryptToken($token);
+                setcookie("vk_token", $encrypted, [
+                    "expires"  => time() + 86400 * 30,
+                    "path"     => "/",
+                    "secure"   => ovk_is_ssl(),
+                    "httponly" => true,
+                    "samesite" => "Lax",
+                ]);
+
+                // Сохраняем api_url в незашифрованной куке
+                setcookie("vk_api_url", $apiUrl, [
+                    "expires"  => time() + 86400 * 30,
+                    "path"     => "/",
+                    "secure"   => ovk_is_ssl(),
+                    "httponly" => true,
+                    "samesite" => "Lax",
+                ]);
+
+                $this->flash("succ", tr("information_-1"), tr("vk_token_saved"));
+                $this->redirect("/");
+            }
+
+            return;
+        }
+
         $redirUrl = $this->requestParam("jReturnTo");
 
         if (!is_null($this->user->identity)) {
@@ -246,6 +322,32 @@ final class AuthPresenter extends OpenVKPresenter
 
     public function renderLogout(): void
     {
+        if ($this->isVkMode()) {
+            $this->assertNoCSRF();
+
+            // Сбрасываем токен и api_url из кук
+            setcookie("vk_token", "", [
+                "expires"  => 1,
+                "path"     => "/",
+                "secure"   => ovk_is_ssl(),
+                "httponly" => true,
+                "samesite" => "Lax",
+            ]);
+            setcookie("vk_api_url", "", [
+                "expires"  => 1,
+                "path"     => "/",
+                "secure"   => ovk_is_ssl(),
+                "httponly" => true,
+                "samesite" => "Lax",
+            ]);
+            unset($_COOKIE["vk_token"]);
+            unset($_COOKIE["vk_api_url"]);
+
+            $this->redirect("/");
+
+            return;
+        }
+
         $this->assertUserLoggedIn();
         $this->assertNoCSRF();
         $this->authenticator->logout();

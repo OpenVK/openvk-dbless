@@ -65,10 +65,10 @@
 "change_status" = "изменить статус";
 "name" = "Имя";
 "surname" = "Фамилия";
-"pronouns" = "Местоимения";
-"male" = "он/его";
-"female" = "она/её";
-"neutral" = "они/их";
+"pronouns" = "Пол";
+"male" = "мужской";
+"female" = "женский";
+"neutral" = "-, местоимения: они/их";
 "description" = "Описание";
 "save" = "Сохранить";
 "main_information" = "Основная информация";
@@ -2204,6 +2204,17 @@
 
 "coverage" = "Охват";
 "coverage_this_week" = "Этот график отображает охват за последние 7 дней.";
+
+/* VK Proxy Mode */
+
+"vk_token_auth" = "Авторизация через VK";
+"vk_token_label" = "VK Access Token";
+"vk_token_enter" = "Войти";
+"vk_token_saved" = "Токен успешно сохранён.";
+"enter_token" = "Пожалуйста, введите VK access token.";
+"invalid_vk_token" = "VK токен недействителен или истёк.";
+"registration_not_available" = "Регистрация недоступна";
+"registration_not_available_in_vk_mode" = "Регистрация недоступна в режиме прокси VK. Пожалуйста, войдите с помощью VK access token.";
 "views" = "Просмотры";
 "views_this_week" = "Этот график отображает просмотры постов сообщества за последние 7 дней.";
 
@@ -2496,3 +2507,11 @@
 "nospam_templates" = "Активные шаблоны noSpam";
 "verified_groups" = "верифицированный";
 "banned_groups" = "заблокированный";
+
+/* VK Proxy Mode — api_url and errors */
+
+"vk_api_url_label" = "VK API URL (необязательно)";
+"vk_api_url_default" = "https://api.vk.com/method";
+"vk_api_error_title" = "Ошибка VK API";
+"vk_clear_token" = "Очистить токен";
+"vk_api_unknown_error" = "Произошла неизвестная ошибка VK API.";

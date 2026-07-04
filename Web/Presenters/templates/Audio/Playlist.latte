@@ -39,10 +39,11 @@
         window.__current_page_audio_context = {
             name: 'playlist_context',
             entity_id: {$playlist->getId()},
+            entity_id2: {$playlist->getOwnerId()},
             page: {$page}
         }
     </script>
-    
+
     <div class="playlistBlock">
         <div class="playlistCover">
             {if $cover}
@@ -79,7 +80,7 @@
             <div class="audiosContainer scroll_container infContainer" style="margin-top: 14px;">
                 {if $count < 1}
                     {_empty_playlist}
-                {else}  
+                {else}
                     <div class="scroll_node" n:foreach="$audios as $audio">
                         {include "player.latte", audio => $audio}
                     </div>
